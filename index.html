@@ -1,0 +1,1170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Aquature — Water Intelligence Platform</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: 'Inter', sans-serif;
+  background: #050A10;
+  color: #C8D4E0;
+  font-size: 13px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+.topbar {
+  position: fixed; top: 0; left: 0; right: 0;
+  height: 52px; padding: 0 24px;
+  display: flex; align-items: center; justify-content: space-between;
+  background: #080F16;
+  border-bottom: 1px solid rgba(255, 107, 26, 0.3);
+  box-shadow: 0 0 30px rgba(255, 107, 26, 0.1);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px; letter-spacing: 0.1em;
+  text-transform: uppercase; z-index: 100;
+}
+.tb-left { display: flex; gap: 10px; align-items: center; }
+.tb-pill {
+  display: flex; align-items: center; gap: 6px;
+  padding: 5px 12px; background: #0D1620;
+  border: 1px solid #1A2A38; border-radius: 2px; font-size: 9px;
+}
+.tb-pill .dot { width: 5px; height: 5px; border-radius: 50%; }
+.tb-pill.cyan { color: #00D4FF; border-color: rgba(0, 212, 255, 0.3); }
+.tb-pill.cyan .dot { background: #00D4FF; box-shadow: 0 0 6px #00D4FF; animation: pulse 2s infinite; }
+.tb-pill.green { color: #00FF88; border-color: rgba(0, 255, 136, 0.3); }
+.tb-pill.green .dot { background: #00FF88; box-shadow: 0 0 6px #00FF88; }
+.tb-pill.orange { color: #FF6B1A; border-color: rgba(255, 107, 26, 0.3); }
+.tb-pill.orange .dot { background: #FF6B1A; box-shadow: 0 0 6px #FF6B1A; }
+.tb-pill b { color: #E0E8F0; font-weight: 600; }
+@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+.tb-brand {
+  position: absolute; left: 50%; transform: translateX(-50%);
+  font-family: 'Inter', sans-serif; font-size: 17px; font-weight: 700;
+  text-transform: none; color: #00D4FF;
+  letter-spacing: -0.02em;
+  display: flex; align-items: center; gap: 8px;
+  text-shadow: 0 0 20px rgba(0, 212, 255, 0.4);
+}
+.tb-brand::before {
+  content: ''; width: 7px; height: 7px;
+  background: #00D4FF; box-shadow: 0 0 10px #00D4FF;
+  transform: rotate(45deg);
+}
+
+.tb-right { display: flex; gap: 10px; align-items: center; }
+.live-badge {
+  display: flex; align-items: center; gap: 6px;
+  padding: 5px 10px; background: rgba(255, 60, 60, 0.1);
+  border: 1px solid rgba(255, 60, 60, 0.4); border-radius: 2px;
+  color: #FF3C3C; font-size: 9px;
+}
+.live-badge .dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: #FF3C3C; box-shadow: 0 0 8px #FF3C3C;
+  animation: pulse 1s infinite;
+}
+
+.rail {
+  position: fixed; left: 0; top: 52px;
+  width: 56px; height: calc(100vh - 52px);
+  background: #080F16; border-right: 1px solid #1A2A38;
+  display: flex; flex-direction: column;
+  align-items: center; padding: 16px 0; gap: 6px; z-index: 90;
+}
+.rail-btn {
+  width: 40px; height: 40px;
+  display: flex; align-items: center; justify-content: center;
+  color: #5A6878; text-decoration: none; border-radius: 3px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px; font-weight: 600;
+  border: 1px solid transparent; transition: all 0.2s;
+}
+.rail-btn:hover { color: #00D4FF; border-color: rgba(0, 212, 255, 0.3); background: rgba(0, 212, 255, 0.05); }
+.rail-btn.active { color: #FF6B1A; border-color: rgba(255, 107, 26, 0.4); background: rgba(255, 107, 26, 0.08); }
+
+.main { margin-left: 56px; padding: 68px 20px 40px; max-width: 1900px; margin-right: auto; }
+
+.hero {
+  padding: 24px 28px;
+  background: linear-gradient(90deg, #0A1218 0%, #0D1620 50%, #0A1218 100%);
+  border: 1px solid #1A2A38; border-radius: 4px;
+  position: relative; overflow: hidden; margin-bottom: 16px;
+}
+.hero::before, .hero::after { content: ''; position: absolute; left: 0; right: 0; height: 1px; }
+.hero::before { top: 0; background: linear-gradient(90deg, transparent, #FF6B1A 50%, transparent); }
+.hero::after { bottom: 0; background: linear-gradient(90deg, transparent, #00D4FF 50%, transparent); }
+
+.hero-row { display: flex; align-items: center; gap: 32px; justify-content: space-between; flex-wrap: wrap; }
+.hero-content { flex: 1; min-width: 300px; }
+.hero-tags { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+.hero-tag {
+  padding: 4px 10px; background: #0D1620;
+  border: 1px solid #1A2A38; border-radius: 2px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: #5A6878;
+}
+.hero-tag span { color: #E0E8F0; }
+.hero-tag.hot { border-color: rgba(255, 107, 26, 0.4); color: #FF6B1A; }
+.hero-tag.cool { border-color: rgba(0, 212, 255, 0.4); color: #00D4FF; }
+
+.hero-title { font-size: 32px; font-weight: 300; line-height: 1.15; letter-spacing: -0.02em; color: #E0E8F0; margin-bottom: 8px; }
+.hero-title strong { font-weight: 600; color: #00D4FF; text-shadow: 0 0 20px rgba(0, 212, 255, 0.3); }
+.hero-desc { font-size: 14px; color: #6A7A8C; max-width: 800px; line-height: 1.5; }
+
+.hero-stats { display: grid; grid-template-columns: repeat(4, minmax(100px, 1fr)); gap: 8px; min-width: 480px; }
+.hstat { padding: 10px 14px; background: #0D1620; border: 1px solid #1A2A38; border-left: 3px solid #00D4FF; border-radius: 2px; }
+.hstat.orange { border-left-color: #FF6B1A; }
+.hstat.green { border-left-color: #00FF88; }
+.hstat-label { font-family: 'JetBrains Mono', monospace; font-size: 9px; color: #5A6878; letter-spacing: 0.15em; text-transform: uppercase; margin-bottom: 4px; }
+.hstat-value { font-family: 'JetBrains Mono', monospace; font-size: 18px; font-weight: 600; color: #E0E8F0; }
+.hstat-value.cyan { color: #00D4FF; }
+.hstat-value.orange { color: #FF6B1A; }
+.hstat-value.green { color: #00FF88; }
+
+.dashboard { display: grid; grid-template-columns: 1.4fr 1.1fr 1fr; gap: 16px; }
+@media (max-width: 1400px) { .dashboard { grid-template-columns: 1.3fr 1fr; } .dashboard .result-panel { grid-column: 1 / -1; } }
+@media (max-width: 950px) { .dashboard { grid-template-columns: 1fr; } }
+
+.panel { background: #0A1218; border: 1px solid #1A2A38; border-radius: 4px; display: flex; flex-direction: column; overflow: hidden; }
+.panel-header {
+  padding: 10px 16px;
+  background: linear-gradient(180deg, #0D1620 0%, #0A1218 100%);
+  border-bottom: 1px solid #1A2A38;
+  display: flex; align-items: center; justify-content: space-between;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px; letter-spacing: 0.15em; text-transform: uppercase; flex-shrink: 0;
+}
+.panel-title { color: #00D4FF; display: flex; align-items: center; gap: 8px; }
+.panel-title::before { content: ''; width: 3px; height: 12px; background: #00D4FF; box-shadow: 0 0 8px #00D4FF; }
+.panel-title.orange { color: #FF6B1A; }
+.panel-title.orange::before { background: #FF6B1A; box-shadow: 0 0 8px #FF6B1A; }
+.panel-title.green { color: #00FF88; }
+.panel-title.green::before { background: #00FF88; box-shadow: 0 0 8px #00FF88; }
+.panel-status { color: #5A6878; font-size: 9px; }
+.panel-status.on::before { content: '●'; margin-right: 4px; color: #00FF88; animation: pulse 1.5s infinite; }
+.panel-status.warn::before { content: '●'; margin-right: 4px; color: #FF6B1A; }
+.panel-status.loading::before { content: '◐'; margin-right: 4px; color: #00D4FF; animation: pulse 0.8s infinite; }
+
+.map-panel { min-height: 520px; }
+.map-wrap { flex: 1; position: relative; min-height: 400px; }
+#map { position: absolute; inset: 0; background: #050A10; }
+
+.map-top-controls { position: absolute; top: 10px; left: 10px; right: 10px; z-index: 600; display: flex; gap: 8px; pointer-events: none; }
+.map-top-controls > * { pointer-events: auto; }
+
+.map-search { flex: 1; max-width: 260px; display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: rgba(10, 18, 24, 0.95); border: 1px solid #1A2A38; border-radius: 3px; backdrop-filter: blur(10px); }
+.map-search input { flex: 1; background: transparent; border: none; outline: none; color: #E0E8F0; font-family: 'JetBrains Mono', monospace; font-size: 11px; }
+.map-search input::placeholder { color: #4A5866; }
+.map-search::before { content: '⌕'; color: #00D4FF; font-size: 16px; }
+
+.map-btn { padding: 8px 12px; background: rgba(10, 18, 24, 0.95); border: 1px solid #1A2A38; color: #8A98A8; font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; cursor: pointer; border-radius: 3px; backdrop-filter: blur(10px); transition: all 0.2s; white-space: nowrap; }
+.map-btn:hover { border-color: #00D4FF; color: #00D4FF; background: rgba(0, 212, 255, 0.08); }
+
+.map-coords { position: absolute; bottom: 10px; right: 10px; z-index: 600; padding: 5px 12px; background: rgba(10, 18, 24, 0.9); border: 1px solid #1A2A38; border-radius: 3px; font-family: 'JetBrains Mono', monospace; font-size: 10px; color: #8A98A8; letter-spacing: 0.08em; backdrop-filter: blur(10px); pointer-events: none; }
+.map-coords b { color: #00D4FF; font-weight: 500; }
+
+.map-coverage { position: absolute; top: 56px; right: 10px; z-index: 600; padding: 6px 12px; background: rgba(10, 18, 24, 0.95); border: 1px solid #1A2A38; border-radius: 3px; font-family: 'JetBrains Mono', monospace; font-size: 10px; color: #5A6878; letter-spacing: 0.08em; backdrop-filter: blur(10px); pointer-events: none; max-width: 280px; }
+.map-coverage b { color: #E0E8F0; font-weight: 500; }
+.map-coverage.covered { border-color: rgba(0, 255, 136, 0.4); color: #00FF88; }
+.map-coverage.covered b { color: #00FF88; }
+.map-coverage.out { border-color: rgba(255, 107, 26, 0.4); color: #FF6B1A; }
+.map-coverage.out b { color: #FF6B1A; }
+.map-coverage.loading { border-color: rgba(0, 212, 255, 0.4); color: #00D4FF; }
+.map-coverage.loading b { color: #00D4FF; }
+
+.map-tools { padding: 12px 16px; border-top: 1px solid #1A2A38; background: #0D1620; display: flex; gap: 8px; flex-wrap: wrap; flex-shrink: 0; }
+.mt-btn { padding: 9px 14px; background: transparent; border: 1px solid #1A2A38; color: #8A98A8; font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; cursor: pointer; border-radius: 3px; transition: all 0.2s; white-space: nowrap; }
+.mt-btn:hover:not(:disabled) { border-color: #00D4FF; color: #00D4FF; background: rgba(0, 212, 255, 0.05); }
+.mt-btn.primary { border-color: rgba(0, 255, 136, 0.5); color: #00FF88; background: rgba(0, 255, 136, 0.08); font-weight: 600; }
+.mt-btn.primary:hover:not(:disabled) { background: #00FF88; color: #050A10; box-shadow: 0 0 20px rgba(0, 255, 136, 0.4); }
+.mt-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+.zone-info { padding: 12px 16px; border-top: 1px solid #1A2A38; background: #080F16; display: none; font-family: 'JetBrains Mono', monospace; font-size: 10px; flex-shrink: 0; }
+.zone-info.on { display: block; }
+.zone-info-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px 20px; }
+.zone-info-row { display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid rgba(26, 42, 56, 0.5); }
+.zone-info-row span { color: #5A6878; letter-spacing: 0.1em; }
+.zone-info-row b { color: #00D4FF; font-weight: 500; }
+.zone-info-row.alert b { color: #FF6B1A; }
+
+.analysis-panel { min-height: 520px; }
+.gauges-grid { padding: 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; flex: 1; }
+
+.gauge-box { padding: 14px 10px; background: #0D1620; border: 1px solid #1A2A38; border-radius: 3px; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; }
+.gauge-box::before { content: attr(data-label); position: absolute; top: 8px; left: 12px; font-family: 'JetBrains Mono', monospace; font-size: 9px; letter-spacing: 0.15em; text-transform: uppercase; color: #4A5866; }
+.gauge-circle { width: 80px; height: 80px; position: relative; margin: 10px 0 6px; }
+.gauge-svg { width: 100%; height: 100%; transform: rotate(-135deg); }
+.gauge-svg circle { fill: none; stroke-width: 7; stroke-linecap: round; }
+.gauge-bg { stroke: #1A2A38; }
+.gauge-fg { stroke: var(--gc); stroke-dasharray: 251; stroke-dashoffset: 251; transition: stroke-dashoffset 1.4s cubic-bezier(0.16, 1, 0.3, 1); filter: drop-shadow(0 0 6px var(--gc)); }
+.gauge-num { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-family: 'JetBrains Mono', monospace; font-size: 16px; font-weight: 600; color: var(--gc); text-shadow: 0 0 10px var(--gc); }
+.gauge-box.clean { --gc: #00D4FF; }
+.gauge-box.turbid { --gc: #FFB444; }
+.gauge-box.organic { --gc: #00FF88; }
+.gauge-box.industrial { --gc: #FF3C3C; }
+.gauge-box.oil { --gc: #B14EFF; }
+.gauge-label { font-family: 'JetBrains Mono', monospace; font-size: 9px; color: #8A98A8; letter-spacing: 0.05em; text-align: center; text-transform: uppercase; }
+
+.indicator-strip { padding: 12px 16px; border-top: 1px solid #1A2A38; display: flex; flex-direction: column; gap: 8px; background: #080F16; flex-shrink: 0; }
+.ind-row { display: grid; grid-template-columns: 70px 1fr 50px; gap: 10px; align-items: center; font-family: 'JetBrains Mono', monospace; font-size: 10px; }
+.ind-name { color: #5A6878; letter-spacing: 0.1em; text-transform: uppercase; }
+.ind-bar { height: 6px; background: #1A2A38; border-radius: 1px; overflow: hidden; }
+.ind-fill { height: 100%; width: 0; background: var(--ic); box-shadow: 0 0 6px var(--ic); transition: width 1.4s cubic-bezier(0.16, 1, 0.3, 1); }
+.ind-val { color: #E0E8F0; text-align: right; font-weight: 600; }
+.ind-row.clean { --ic: #00D4FF; }
+.ind-row.turbid { --ic: #FFB444; }
+.ind-row.organic { --ic: #00FF88; }
+.ind-row.industrial { --ic: #FF3C3C; }
+.ind-row.oil { --ic: #B14EFF; }
+
+.result-panel { min-height: 520px; }
+.whi-display { padding: 24px 20px 18px; text-align: center; background: radial-gradient(ellipse at center, rgba(0, 212, 255, 0.08) 0%, transparent 70%); border-bottom: 1px solid #1A2A38; position: relative; flex-shrink: 0; }
+.whi-display::before, .whi-display::after { content: ''; position: absolute; left: 50%; transform: translateX(-50%); width: 60%; height: 1px; background: linear-gradient(90deg, transparent, #00D4FF, transparent); }
+.whi-display::before { top: 0; }
+.whi-display::after { bottom: 0; }
+.whi-lbl { font-family: 'JetBrains Mono', monospace; font-size: 9px; letter-spacing: 0.2em; text-transform: uppercase; color: #00D4FF; margin-bottom: 10px; }
+.whi-val { font-family: 'JetBrains Mono', monospace; font-size: 68px; font-weight: 200; line-height: 0.9; letter-spacing: -0.05em; color: #00D4FF; text-shadow: 0 0 30px rgba(0, 212, 255, 0.5); margin-bottom: 6px; transition: color 0.5s; }
+.whi-val.empty { color: #3A4858; text-shadow: none; }
+.whi-sub { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: #5A6878; letter-spacing: 0.1em; }
+
+.whi-legend { padding: 12px 20px 16px; border-bottom: 1px solid #1A2A38; flex-shrink: 0; }
+.whi-legend-bar { height: 6px; border-radius: 3px; background: linear-gradient(90deg, #FF3C3C 0%, #FFB444 30%, #FFEB3B 55%, #00FF88 80%, #00D4FF 100%); box-shadow: 0 0 10px rgba(0, 212, 255, 0.3); margin-bottom: 8px; position: relative; opacity: 1; transition: opacity 0.3s; }
+.whi-legend-bar.empty { opacity: 0.25; }
+.whi-legend-bar::after { content: ''; position: absolute; top: -3px; left: var(--pos, 50%); transform: translateX(-50%); width: 3px; height: 12px; background: #FFF; box-shadow: 0 0 6px #FFF; border-radius: 2px; transition: left 1.5s cubic-bezier(0.16, 1, 0.3, 1); }
+.whi-legend-labels { display: flex; justify-content: space-between; font-family: 'JetBrains Mono', monospace; font-size: 8px; color: #5A6878; letter-spacing: 0.1em; }
+
+.recs-compact { padding: 14px 16px; flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; min-height: 0; }
+.recs-compact::-webkit-scrollbar { width: 4px; }
+.recs-compact::-webkit-scrollbar-track { background: #0A1218; }
+.recs-compact::-webkit-scrollbar-thumb { background: #1A2A38; border-radius: 2px; }
+
+.rec-mini { display: grid; grid-template-columns: 32px 1fr auto; gap: 12px; align-items: center; padding: 10px 12px; background: #0D1620; border: 1px solid #1A2A38; border-radius: 3px; border-left: 3px solid var(--rc); transition: all 0.2s; }
+.rec-mini:hover { background: #101A24; }
+.rec-mini[data-p="high"] { --rc: #FF3C3C; }
+.rec-mini[data-p="medium"] { --rc: #FFB444; }
+.rec-mini[data-p="low"] { --rc: #00FF88; }
+.rec-mini-num { font-family: 'JetBrains Mono', monospace; font-size: 14px; font-weight: 600; color: var(--rc); text-shadow: 0 0 6px var(--rc); }
+.rec-mini-t { font-size: 12px; font-weight: 500; color: #E0E8F0; line-height: 1.3; margin-bottom: 2px; }
+.rec-mini-d { font-size: 10px; color: #5A6878; line-height: 1.3; }
+.rec-mini-badge { font-family: 'JetBrains Mono', monospace; font-size: 8px; padding: 3px 6px; border: 1px solid var(--rc); color: var(--rc); border-radius: 2px; letter-spacing: 0.1em; text-transform: uppercase; }
+
+.dl-strip { padding: 12px 16px; border-top: 1px solid #1A2A38; background: #0D1620; display: flex; gap: 8px; flex-shrink: 0; }
+.dl-btn { flex: 1; padding: 11px 10px; background: transparent; border: 1px solid rgba(0, 255, 136, 0.4); color: #00FF88; font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; cursor: pointer; border-radius: 3px; transition: all 0.2s; white-space: nowrap; }
+.dl-btn:hover:not(:disabled) { background: #00FF88; color: #050A10; box-shadow: 0 0 20px rgba(0, 255, 136, 0.4); }
+.dl-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+.statusbar { position: fixed; bottom: 0; left: 56px; right: 0; height: 28px; background: #080F16; border-top: 1px solid rgba(255, 107, 26, 0.3); display: flex; align-items: center; justify-content: space-between; padding: 0 20px; font-family: 'JetBrains Mono', monospace; font-size: 9px; color: #5A6878; letter-spacing: 0.1em; text-transform: uppercase; z-index: 90; }
+.sb-left, .sb-right { display: flex; gap: 16px; align-items: center; }
+.sb-ok { color: #00FF88; }
+.sb-ok::before { content: '●'; margin-right: 4px; animation: pulse 1.5s infinite; }
+.sb-email { color: #00D4FF; }
+.sb-orange { color: #00D4FF; font-weight: 700; }
+
+.leaflet-container { background: #050A10; font-family: 'JetBrains Mono', monospace; }
+.leaflet-control-zoom { border: 1px solid #1A2A38 !important; border-radius: 3px !important; overflow: hidden; }
+.leaflet-control-zoom a { background: rgba(10, 18, 24, 0.95) !important; color: #00D4FF !important; border: none !important; border-bottom: 1px solid #1A2A38 !important; width: 32px !important; height: 32px !important; line-height: 32px !important; font-size: 16px !important; }
+.leaflet-control-zoom a:hover { background: rgba(0, 212, 255, 0.15) !important; }
+.leaflet-control-zoom a:last-child { border-bottom: none !important; }
+
+@media (max-width: 950px) {
+  .rail { display: none; }
+  .main { margin-left: 0; padding: 68px 12px 40px; }
+  .statusbar { left: 0; }
+  .sb-right { display: none; }
+  .hero-stats { min-width: unset; width: 100%; grid-template-columns: 1fr 1fr; }
+  .hero-title { font-size: 24px; }
+}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="tb-left">
+    <div class="tb-pill cyan"><span class="dot"></span><span>API</span><b>LIVE</b></div>
+    <div class="tb-pill green"><span class="dot"></span><span>SYSTEM</span><b>ONLINE</b></div>
+    <div class="tb-pill orange"><span class="dot"></span><span>SOURCE</span><b>SENTINEL-2</b></div>
+  </div>
+  <div class="tb-brand">Aquature</div>
+  <div class="tb-right">
+    <div class="live-badge"><span class="dot"></span>LIVE</div>
+  </div>
+</div>
+
+<nav class="rail">
+  <a href="#" class="rail-btn active">⌂</a>
+  <a href="#site" class="rail-btn">◉</a>
+  <a href="#analysis" class="rail-btn">◈</a>
+  <a href="#result" class="rail-btn">◆</a>
+</nav>
+
+<main class="main">
+
+  <section class="hero">
+    <div class="hero-row">
+      <div class="hero-content">
+        <div class="hero-tags">
+          <div class="hero-tag hot">◆ ARAB YOUTH SPACE HACKATHON</div>
+          <div class="hero-tag cool">SENSOR <span>SENTINEL-2 L2A</span></div>
+          <div class="hero-tag">BANDS <span>6</span></div>
+          <div class="hero-tag">CLASSES <span>5</span></div>
+        </div>
+        <h1 class="hero-title">Real-time water intelligence for <strong>any water body</strong> on Earth.</h1>
+        <p class="hero-desc">From seas and rivers to lakes and reservoirs — draw any zone on the map, click Analyze, and get a full water health report in seconds.</p>
+      </div>
+      <div class="hero-stats">
+        <div class="hstat"><div class="hstat-label">Source</div><div class="hstat-value cyan">Sentinel-2</div></div>
+        <div class="hstat orange"><div class="hstat-label">Bands</div><div class="hstat-value orange">6</div></div>
+        <div class="hstat green"><div class="hstat-label">Classes</div><div class="hstat-value green">5</div></div>
+        <div class="hstat"><div class="hstat-label">Coverage</div><div class="hstat-value">Global</div></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="dashboard">
+
+    <div class="panel map-panel" id="site">
+      <div class="panel-header">
+        <div class="panel-title orange">◉ Site Selection</div>
+        <div class="panel-status on" id="mapStatus">MAP READY</div>
+      </div>
+      <div class="map-wrap">
+        <div id="map"></div>
+        <div class="map-top-controls">
+          <div class="map-search">
+            <input type="text" id="searchInput" placeholder="Search location..." />
+          </div>
+          <button class="map-btn" id="homeBtn">⌂ HOME</button>
+        </div>
+        <div class="map-coverage" id="coverageInfo">◉ DRAW A ZONE TO ANALYZE</div>
+        <div class="map-coords">LAT <b id="mouseLat">—</b> · LON <b id="mouseLon">—</b></div>
+      </div>
+      <div class="map-tools">
+        <button class="mt-btn" id="drawBtn">✎ Draw Zone</button>
+        <button class="mt-btn primary" id="analyzeBtn" disabled>▶ Analyze</button>
+        <button class="mt-btn" id="clearZone" disabled>✕ Clear</button>
+      </div>
+      <div class="zone-info" id="zoneInfo">
+        <div class="zone-info-grid">
+          <div class="zone-info-row"><span>N</span><b id="zN">—</b></div>
+          <div class="zone-info-row"><span>S</span><b id="zS">—</b></div>
+          <div class="zone-info-row"><span>E</span><b id="zE">—</b></div>
+          <div class="zone-info-row"><span>W</span><b id="zW">—</b></div>
+          <div class="zone-info-row"><span>AREA</span><b id="zA">—</b></div>
+          <div class="zone-info-row"><span>WATER</span><b id="zWater">—</b></div>
+          <div class="zone-info-row" id="zCoverRow"><span>SCENE</span><b id="zC">—</b></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel analysis-panel" id="analysis">
+      <div class="panel-header">
+        <div class="panel-title">◈ Live Analysis</div>
+        <div class="panel-status" id="analysisStatus">WAITING</div>
+      </div>
+      <div class="gauges-grid">
+        <div class="gauge-box clean" data-label="CLEAN">
+          <div class="gauge-circle"><svg class="gauge-svg" viewBox="0 0 100 100"><circle class="gauge-bg" cx="50" cy="50" r="40"/><circle class="gauge-fg" id="gClean" cx="50" cy="50" r="40"/></svg><div class="gauge-num" id="gCleanNum">—</div></div>
+          <div class="gauge-label">Clean</div>
+        </div>
+        <div class="gauge-box turbid" data-label="TURBID">
+          <div class="gauge-circle"><svg class="gauge-svg" viewBox="0 0 100 100"><circle class="gauge-bg" cx="50" cy="50" r="40"/><circle class="gauge-fg" id="gTurbid" cx="50" cy="50" r="40"/></svg><div class="gauge-num" id="gTurbidNum">—</div></div>
+          <div class="gauge-label">Turbid</div>
+        </div>
+        <div class="gauge-box organic" data-label="ORGANIC">
+          <div class="gauge-circle"><svg class="gauge-svg" viewBox="0 0 100 100"><circle class="gauge-bg" cx="50" cy="50" r="40"/><circle class="gauge-fg" id="gOrganic" cx="50" cy="50" r="40"/></svg><div class="gauge-num" id="gOrganicNum">—</div></div>
+          <div class="gauge-label">Organic</div>
+        </div>
+        <div class="gauge-box industrial" data-label="INDUSTRIAL">
+          <div class="gauge-circle"><svg class="gauge-svg" viewBox="0 0 100 100"><circle class="gauge-bg" cx="50" cy="50" r="40"/><circle class="gauge-fg" id="gIndustrial" cx="50" cy="50" r="40"/></svg><div class="gauge-num" id="gIndustrialNum">—</div></div>
+          <div class="gauge-label">Industrial</div>
+        </div>
+        <div class="gauge-box oil" data-label="OIL" style="grid-column: span 2;">
+          <div class="gauge-circle"><svg class="gauge-svg" viewBox="0 0 100 100"><circle class="gauge-bg" cx="50" cy="50" r="40"/><circle class="gauge-fg" id="gOil" cx="50" cy="50" r="40"/></svg><div class="gauge-num" id="gOilNum">—</div></div>
+          <div class="gauge-label">Oil / Hydrocarbons</div>
+        </div>
+      </div>
+      <div class="indicator-strip">
+        <div class="ind-row clean"><div class="ind-name">Clean</div><div class="ind-bar"><div class="ind-fill" id="bClean"></div></div><div class="ind-val" id="vClean">—</div></div>
+        <div class="ind-row turbid"><div class="ind-name">Turbid</div><div class="ind-bar"><div class="ind-fill" id="bTurbid"></div></div><div class="ind-val" id="vTurbid">—</div></div>
+        <div class="ind-row organic"><div class="ind-name">Organic</div><div class="ind-bar"><div class="ind-fill" id="bOrganic"></div></div><div class="ind-val" id="vOrganic">—</div></div>
+        <div class="ind-row industrial"><div class="ind-name">Industrial</div><div class="ind-bar"><div class="ind-fill" id="bIndustrial"></div></div><div class="ind-val" id="vIndustrial">—</div></div>
+        <div class="ind-row oil"><div class="ind-name">Oil</div><div class="ind-bar"><div class="ind-fill" id="bOil"></div></div><div class="ind-val" id="vOil">—</div></div>
+      </div>
+    </div>
+
+    <div class="panel result-panel" id="result">
+      <div class="panel-header">
+        <div class="panel-title green">◈ Result</div>
+        <div class="panel-status" id="resultStatus">WAITING</div>
+      </div>
+      <div class="whi-display">
+        <div class="whi-lbl">◉ Water Health Index</div>
+        <div class="whi-val empty" id="whiValue">—</div>
+        <div class="whi-sub">out of 100</div>
+      </div>
+      <div class="whi-legend">
+        <div class="whi-legend-bar empty" id="whiBar"></div>
+        <div class="whi-legend-labels"><span>0 CRIT</span><span>50 MOD</span><span>100 PRISTINE</span></div>
+      </div>
+      <div class="recs-compact">
+        <div class="rec-mini" data-p="high">
+          <div class="rec-mini-num">01</div>
+          <div><div class="rec-mini-t">Industrial Inspection</div><div class="rec-mini-d">Verify effluent sources.</div></div>
+          <div class="rec-mini-badge">HIGH</div>
+        </div>
+        <div class="rec-mini" data-p="medium">
+          <div class="rec-mini-num">02</div>
+          <div><div class="rec-mini-t">Turbidity Monitoring</div><div class="rec-mini-d">Weekly re-scan recommended.</div></div>
+          <div class="rec-mini-badge">MED</div>
+        </div>
+        <div class="rec-mini" data-p="medium">
+          <div class="rec-mini-num">03</div>
+          <div><div class="rec-mini-t">Chlorophyll Tracking</div><div class="rec-mini-d">Watch for algal blooms.</div></div>
+          <div class="rec-mini-badge">MED</div>
+        </div>
+        <div class="rec-mini" data-p="low">
+          <div class="rec-mini-num">04</div>
+          <div><div class="rec-mini-t">Maintain Status</div><div class="rec-mini-d">Continue periodic checks.</div></div>
+          <div class="rec-mini-badge">LOW</div>
+        </div>
+      </div>
+      <div class="dl-strip">
+        <button class="dl-btn" id="dlZone" disabled>↓ PDF ZONE</button>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<div class="statusbar">
+  <div class="sb-left">
+    <span class="sb-orange">◈ AQUATURE</span>
+    <span class="sb-ok">BACKEND ONLINE</span>
+    <span id="sbCoords">LAT — · LON —</span>
+  </div>
+  <div class="sb-right">
+    <span class="sb-email">wasanalslhi@gmail.com</span>
+    <span>© 2025</span>
+  </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+// ============================================================
+// ⚠️ IMPORTANT: Backend URL
+// ============================================================
+const BACKEND_URL = window.location.origin.includes('netlify')
+  ? 'https://aquature-backend.onrender.com'
+  : '';
+
+const STUDY_CENTER = [24.09, 53.76];
+let RESULTS = null;
+let userZone = null;
+let overlayLayer = null;
+
+const map = L.map('map', {
+  center: STUDY_CENTER, zoom: 4, minZoom: 2, maxZoom: 19,
+  scrollWheelZoom: true, zoomControl: false,
+  attributionControl: false, worldCopyJump: true
+});
+
+L.control.zoom({ position: 'topright' }).addTo(map);
+L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19 }).addTo(map);
+
+map.on('mousemove', (e) => {
+  const lat = e.latlng.lat.toFixed(4);
+  const lon = e.latlng.lng.toFixed(4);
+  document.getElementById('mouseLat').textContent = lat;
+  document.getElementById('mouseLon').textContent = lon;
+  document.getElementById('sbCoords').textContent = `LAT ${lat} · LON ${lon}`;
+});
+
+document.getElementById('homeBtn').addEventListener('click', () => {
+  map.flyTo(STUDY_CENTER, 11, { duration: 1.2 });
+});
+
+const searchInput = document.getElementById('searchInput');
+searchInput.addEventListener('keydown', async (e) => {
+  if (e.key !== 'Enter') return;
+  const q = searchInput.value.trim();
+  if (!q) return;
+  searchInput.disabled = true;
+  try {
+    const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=1`);
+    const data = await res.json();
+    if (data.length > 0) {
+      map.flyTo([parseFloat(data[0].lat), parseFloat(data[0].lon)], 13, { duration: 1.5 });
+    } else {
+      alert('Location not found');
+    }
+  } catch (err) { console.error(err); }
+  searchInput.disabled = false;
+});
+
+let drawing = false;
+let startPt = null;
+let tempRect = null;
+let savedRects = [];
+const mapEl = map.getContainer();
+
+document.getElementById('drawBtn').addEventListener('click', () => {
+  const btn = document.getElementById('drawBtn');
+  drawing = !drawing;
+  if (drawing) {
+    btn.style.background = 'rgba(255,107,26,0.15)';
+    btn.style.borderColor = '#FF6B1A';
+    btn.style.color = '#FF6B1A';
+    btn.textContent = '✎ Drawing...';
+    mapEl.style.cursor = 'crosshair';
+    map.dragging.disable();
+    mapStatus('DRAW MODE', 'warn');
+  } else {
+    btn.style.background = '';
+    btn.style.borderColor = '';
+    btn.style.color = '';
+    btn.textContent = '✎ Draw Zone';
+    mapEl.style.cursor = '';
+    map.dragging.enable();
+    mapStatus('MAP READY', 'on');
+  }
+});
+
+function evtToLatLng(e) {
+  const rect = mapEl.getBoundingClientRect();
+  const point = L.point(e.clientX - rect.left, e.clientY - rect.top);
+  return map.containerPointToLatLng(point);
+}
+
+mapEl.addEventListener('mousedown', (e) => {
+  if (!drawing || e.button !== 0) return;
+  e.preventDefault(); e.stopPropagation();
+  startPt = evtToLatLng(e);
+  if (tempRect) map.removeLayer(tempRect);
+  tempRect = L.rectangle([startPt, startPt], { color: '#FF6B1A', weight: 2, fillOpacity: 0.15, interactive: false }).addTo(map);
+});
+
+mapEl.addEventListener('mousemove', (e) => {
+  if (!drawing || !startPt) return;
+  e.preventDefault();
+  if (tempRect) map.removeLayer(tempRect);
+  tempRect = L.rectangle([startPt, evtToLatLng(e)], { color: '#FF6B1A', weight: 2, fillOpacity: 0.15, interactive: false }).addTo(map);
+});
+
+mapEl.addEventListener('mouseup', (e) => {
+  if (!drawing || !startPt) return;
+  e.preventDefault();
+  const endPt = evtToLatLng(e);
+  if (tempRect) map.removeLayer(tempRect);
+  tempRect = null;
+
+  const bounds = L.latLngBounds(startPt, endPt);
+  if (bounds.getNorth() - bounds.getSouth() < 0.001) { startPt = null; return; }
+
+  userZone = {
+    north: bounds.getNorth(), south: bounds.getSouth(),
+    east: bounds.getEast(), west: bounds.getWest()
+  };
+
+  savedRects.forEach(r => map.removeLayer(r));
+  savedRects = [];
+  savedRects.push(L.rectangle(bounds, { color: '#FF6B1A', weight: 2, fillColor: '#FF6B1A', fillOpacity: 0.15 }).addTo(map));
+
+  const area = calcArea(userZone);
+  document.getElementById('zN').textContent = userZone.north.toFixed(4);
+  document.getElementById('zS').textContent = userZone.south.toFixed(4);
+  document.getElementById('zE').textContent = userZone.east.toFixed(4);
+  document.getElementById('zW').textContent = userZone.west.toFixed(4);
+  document.getElementById('zA').textContent = area.toFixed(1) + ' km²';
+  document.getElementById('zC').textContent = 'READY';
+  document.getElementById('zoneInfo').classList.add('on');
+
+  document.getElementById('analyzeBtn').disabled = false;
+  document.getElementById('clearZone').disabled = false;
+  document.getElementById('coverageInfo').className = 'map-coverage covered';
+  document.getElementById('coverageInfo').innerHTML = '◉ ZONE READY <b>CLICK ANALYZE</b>';
+  mapStatus('ZONE READY', 'on');
+
+  drawing = false;
+  const btn = document.getElementById('drawBtn');
+  btn.style.background = '';
+  btn.style.borderColor = '';
+  btn.style.color = '';
+  btn.textContent = '✎ Draw Zone';
+  mapEl.style.cursor = '';
+  map.dragging.enable();
+  startPt = null;
+});
+
+function mapStatus(text, cls) {
+  const el = document.getElementById('mapStatus');
+  el.textContent = text;
+  el.className = 'panel-status ' + (cls || '');
+}
+
+function calcArea(z) {
+  const latMid = (z.north + z.south) / 2;
+  const w = (z.east - z.west) * 111.32 * Math.cos(latMid * Math.PI / 180);
+  const h = (z.north - z.south) * 110.57;
+  return Math.abs(w * h);
+}
+
+document.getElementById('analyzeBtn').addEventListener('click', async () => {
+  if (!userZone) return;
+
+  document.getElementById('analysisStatus').className = 'panel-status loading';
+  document.getElementById('analysisStatus').textContent = 'ANALYZING...';
+  document.getElementById('resultStatus').className = 'panel-status loading';
+  document.getElementById('resultStatus').textContent = 'PROCESSING';
+  document.getElementById('coverageInfo').className = 'map-coverage loading';
+  document.getElementById('coverageInfo').innerHTML = '◉ FETCHING SATELLITE DATA...';
+  mapStatus('ANALYZING', 'warn');
+  document.getElementById('analyzeBtn').disabled = true;
+
+  const url = `${BACKEND_URL}/api/analyze?min_lon=${userZone.west}&min_lat=${userZone.south}&max_lon=${userZone.east}&max_lat=${userZone.north}`;
+
+  try {
+    const res = await fetch(url);
+    const data = await res.json();
+
+    if (data.error) {
+      document.getElementById('analysisStatus').className = 'panel-status warn';
+      document.getElementById('analysisStatus').textContent = 'NO DATA';
+      document.getElementById('resultStatus').className = 'panel-status warn';
+      document.getElementById('resultStatus').textContent = 'NO DATA';
+      document.getElementById('coverageInfo').className = 'map-coverage out';
+      document.getElementById('coverageInfo').innerHTML = `◉ <b>${data.error}</b>`;
+      mapStatus('NO DATA', 'warn');
+      resetPanels();
+      alert('Analysis failed: ' + data.error);
+      document.getElementById('analyzeBtn').disabled = false;
+      return;
+    }
+
+    RESULTS = data;
+    renderResults(data);
+
+    if (overlayLayer) map.removeLayer(overlayLayer);
+    const bounds = [[userZone.south, userZone.west], [userZone.north, userZone.east]];
+    overlayLayer = L.imageOverlay(data.overlay, bounds, { opacity: 0.85, interactive: false }).addTo(map);
+
+    document.getElementById('analysisStatus').className = 'panel-status on';
+    document.getElementById('analysisStatus').textContent = 'ANALYZED';
+    document.getElementById('resultStatus').className = 'panel-status on';
+    document.getElementById('resultStatus').textContent = 'READY';
+    document.getElementById('coverageInfo').className = 'map-coverage covered';
+    document.getElementById('coverageInfo').innerHTML = `◉ ANALYZED <b>${data.scene_date}</b>`;
+    document.getElementById('zC').textContent = data.scene_date;
+
+    if (data.water_pixels) {
+      const px = data.water_pixels;
+      const txt = px > 10000 ? (px / 1000).toFixed(1) + 'K' : px.toLocaleString();
+      document.getElementById('zWater').textContent = txt;
+    }
+
+    mapStatus('ANALYZED', 'on');
+    document.getElementById('dlZone').disabled = false;
+
+  } catch (err) {
+    console.error(err);
+    document.getElementById('analysisStatus').className = 'panel-status warn';
+    document.getElementById('analysisStatus').textContent = 'ERROR';
+    document.getElementById('coverageInfo').className = 'map-coverage out';
+    document.getElementById('coverageInfo').innerHTML = '◉ <b>BACKEND ERROR</b>';
+    mapStatus('ERROR', 'warn');
+    alert('Backend error. Make sure the backend is running.');
+  }
+
+  document.getElementById('analyzeBtn').disabled = false;
+});
+
+function anim(el, to, dur, dec, suf) {
+  const t0 = performance.now();
+  const from = parseFloat(el.textContent) || 0;
+  function step(now) {
+    const p = Math.min((now - t0) / dur, 1);
+    const e = 1 - Math.pow(1 - p, 3);
+    el.textContent = (from + (to - from) * e).toFixed(dec) + (suf || '');
+    if (p < 1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+
+function setGauge(id, pct) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const arc = 2 * Math.PI * 40 * 0.75;
+  const offset = arc - (arc * Math.min(pct, 100) / 100);
+  el.style.strokeDasharray = arc;
+  el.style.strokeDashoffset = offset;
+}
+
+function renderResults(data) {
+  anim(document.getElementById('whiValue'), data.whi, 1500, 1, '');
+  document.getElementById('whiValue').classList.remove('empty');
+  document.getElementById('whiBar').classList.remove('empty');
+  document.getElementById('whiBar').style.setProperty('--pos', Math.max(0, Math.min(100, data.whi)) + '%');
+
+  const mapping = {
+    clean: { gauge: 'gClean', num: 'gCleanNum', bar: 'bClean', val: 'vClean' },
+    turbid: { gauge: 'gTurbid', num: 'gTurbidNum', bar: 'bTurbid', val: 'vTurbid' },
+    organic: { gauge: 'gOrganic', num: 'gOrganicNum', bar: 'bOrganic', val: 'vOrganic' },
+    industrial: { gauge: 'gIndustrial', num: 'gIndustrialNum', bar: 'bIndustrial', val: 'vIndustrial' },
+    oil: { gauge: 'gOil', num: 'gOilNum', bar: 'bOil', val: 'vOil' }
+  };
+
+  for (const [k, ids] of Object.entries(mapping)) {
+    const pct = Number(data.classes[k]) || 0;
+    setGauge(ids.gauge, pct);
+    anim(document.getElementById(ids.num), pct, 1200, 0, '%');
+    anim(document.getElementById(ids.val), pct, 1200, 1, '%');
+    setTimeout(() => { document.getElementById(ids.bar).style.width = pct + '%'; }, 150);
+  }
+}
+
+function resetPanels() {
+  document.getElementById('whiValue').textContent = '—';
+  document.getElementById('whiValue').classList.add('empty');
+  document.getElementById('whiBar').classList.add('empty');
+  document.getElementById('whiBar').style.setProperty('--pos', '50%');
+  const mapping = {
+    clean: { gauge: 'gClean', num: 'gCleanNum', bar: 'bClean', val: 'vClean' },
+    turbid: { gauge: 'gTurbid', num: 'gTurbidNum', bar: 'bTurbid', val: 'vTurbid' },
+    organic: { gauge: 'gOrganic', num: 'gOrganicNum', bar: 'bOrganic', val: 'vOrganic' },
+    industrial: { gauge: 'gIndustrial', num: 'gIndustrialNum', bar: 'bIndustrial', val: 'vIndustrial' },
+    oil: { gauge: 'gOil', num: 'gOilNum', bar: 'bOil', val: 'vOil' }
+  };
+  for (const [k, ids] of Object.entries(mapping)) {
+    setGauge(ids.gauge, 0);
+    document.getElementById(ids.num).textContent = '—';
+    document.getElementById(ids.val).textContent = '—';
+    document.getElementById(ids.bar).style.width = '0%';
+  }
+}
+
+document.getElementById('clearZone').addEventListener('click', () => {
+  savedRects.forEach(r => map.removeLayer(r));
+  if (overlayLayer) { map.removeLayer(overlayLayer); overlayLayer = null; }
+  savedRects = [];
+  userZone = null;
+  RESULTS = null;
+  document.getElementById('zoneInfo').classList.remove('on');
+  document.getElementById('analyzeBtn').disabled = true;
+  document.getElementById('clearZone').disabled = true;
+  document.getElementById('dlZone').disabled = true;
+  document.getElementById('coverageInfo').className = 'map-coverage';
+  document.getElementById('coverageInfo').innerHTML = '◉ DRAW A ZONE TO ANALYZE';
+  document.getElementById('analysisStatus').className = 'panel-status';
+  document.getElementById('analysisStatus').textContent = 'WAITING';
+  document.getElementById('resultStatus').className = 'panel-status';
+  document.getElementById('resultStatus').textContent = 'WAITING';
+  mapStatus('MAP READY', 'on');
+  resetPanels();
+});
+
+new MutationObserver(() => {
+  const on = document.getElementById('zoneInfo').classList.contains('on');
+  document.getElementById('clearZone').disabled = !on;
+}).observe(document.getElementById('zoneInfo'), { attributes: true, attributeFilter: ['class'] });
+
+// ============================================
+// PDF REPORT
+// ============================================
+const PC = {
+  ink: [5, 10, 16], inkSoft: [10, 18, 24],
+  cyan: [0, 212, 255], orange: [255, 107, 26],
+  green: [0, 255, 136], red: [255, 60, 60],
+  yellow: [255, 180, 68], purple: [177, 78, 255],
+  text: [224, 232, 240], muted: [90, 104, 120], line: [26, 42, 56]
+};
+
+document.getElementById('dlZone').addEventListener('click', async () => {
+  if (!userZone || !RESULTS) return;
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
+  const W = 210, H = 297, M = 15;
+
+  const btn = document.getElementById('dlZone');
+  const originalText = btn.textContent;
+  btn.textContent = '⏳ Generating...';
+  btn.disabled = true;
+
+  doc.setFillColor(...PC.ink);
+  doc.rect(0, 0, W, H, 'F');
+
+  doc.setFillColor(...PC.inkSoft);
+  doc.rect(0, 0, W, 18, 'F');
+  doc.setDrawColor(...PC.cyan);
+  doc.setLineWidth(0.3);
+  doc.line(0, 18, W, 18);
+  doc.setFillColor(...PC.cyan);
+  doc.rect(M, 6.5, 5, 5, 'F');
+  doc.setTextColor(...PC.cyan);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(13);
+  doc.text('Aquature', M + 8, 11);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(7);
+  doc.setTextColor(...PC.muted);
+  doc.text('WATER INTELLIGENCE PLATFORM', M + 8, 15);
+  doc.text('813 CHALLENGE · 2025', W - M, 10, { align: 'right' });
+  doc.setTextColor(...PC.green);
+  doc.text('● SYSTEM ONLINE', W - M, 14, { align: 'right' });
+
+  let y = 28;
+  doc.setTextColor(...PC.text);
+  doc.setFontSize(16);
+  doc.text('Water Quality Analysis Report', M, y);
+  y += 6;
+  doc.setFontSize(8);
+  doc.setTextColor(...PC.muted);
+  doc.text(`Scene: ${RESULTS.scene_id || 'Sentinel-2'}  ·  Date: ${RESULTS.scene_date || 'N/A'}`, M, y);
+  y += 3.5;
+  doc.setFontSize(7);
+  doc.text(`Cloud: ${RESULTS.cloud_cover || '?'}%  ·  Resolution: ${RESULTS.resolution}px  ·  Generated: ${new Date().toISOString().slice(0, 19).replace('T', ' ')} UTC`, M, y);
+  y += 5;
+  doc.setDrawColor(...PC.line);
+  doc.line(M, y, W - M, y);
+  y += 6;
+
+  doc.setFontSize(7);
+  doc.setTextColor(...PC.orange);
+  doc.setFont('helvetica', 'bold');
+  doc.text('◉ ANALYZED ZONE', M, y);
+  y += 4;
+
+  const imgWidth = W - M * 2;
+  const imgHeight = 60;
+  const imgX = M;
+  const imgY = y;
+
+  doc.setFillColor(35, 45, 55);
+  doc.rect(imgX, imgY, imgWidth, imgHeight, 'F');
+  doc.setDrawColor(50, 60, 70);
+  doc.setLineWidth(0.1);
+  for (let gx = imgX; gx <= imgX + imgWidth; gx += 10) doc.line(gx, imgY, gx, imgY + imgHeight);
+  for (let gy = imgY; gy <= imgY + imgHeight; gy += 10) doc.line(imgX, gy, imgX + imgWidth, gy);
+  doc.setDrawColor(...PC.cyan);
+  doc.setLineWidth(0.3);
+  doc.rect(imgX, imgY, imgWidth, imgHeight, 'S');
+
+  try {
+    if (RESULTS.overlay) {
+      const img = new Image();
+      img.src = RESULTS.overlay;
+      await new Promise((resolve, reject) => {
+        img.onload = resolve;
+        img.onerror = reject;
+      });
+      const canvas = document.createElement('canvas');
+      canvas.width = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = 'rgb(35, 45, 55)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(img, 0, 0);
+      const compositeUrl = canvas.toDataURL('image/png');
+      doc.addImage(compositeUrl, 'PNG', imgX, imgY, imgWidth, imgHeight, undefined, 'FAST');
+
+      doc.setFillColor(0, 0, 0);
+      doc.rect(imgX, imgY + imgHeight - 6, 50, 6, 'F');
+      doc.setTextColor(...PC.cyan);
+      doc.setFontSize(6.5);
+      doc.setFont('helvetica', 'bold');
+      doc.text('SPECTRAL OVERLAY', imgX + 2, imgY + imgHeight - 2);
+
+      doc.setFillColor(0, 0, 0);
+      doc.rect(imgX + imgWidth - 32, imgY + imgHeight - 6, 32, 6, 'F');
+      doc.setTextColor(...PC.muted);
+      doc.setFontSize(5.5);
+      doc.setFont('helvetica', 'normal');
+      doc.text('Gray = No Data', imgX + imgWidth - 30, imgY + imgHeight - 2);
+    }
+  } catch (e) {
+    console.error('Overlay error:', e);
+  }
+
+  y = imgY + imgHeight + 6;
+
+  doc.setFillColor(...PC.inkSoft);
+  doc.rect(M, y, W - M * 2, 10, 'F');
+  doc.setDrawColor(...PC.line);
+  doc.rect(M, y, W - M * 2, 10, 'S');
+  const legendItems = [
+    { label: 'Clean', color: [0, 212, 255], x: M + 4 },
+    { label: 'Turbid', color: [255, 180, 68], x: M + 38 },
+    { label: 'Organic', color: [0, 255, 136], x: M + 72 },
+    { label: 'Industrial', color: [255, 60, 60], x: M + 106 },
+    { label: 'Oil', color: [177, 78, 255], x: M + 140 }
+  ];
+  doc.setFontSize(7);
+  legendItems.forEach(item => {
+    doc.setFillColor(...item.color);
+    doc.rect(item.x, y + 3.5, 3, 3, 'F');
+    doc.setTextColor(...PC.text);
+    doc.setFont('helvetica', 'normal');
+    doc.text(item.label, item.x + 4.5, y + 6);
+  });
+  y += 14;
+
+  doc.setFontSize(7);
+  doc.setTextColor(...PC.orange);
+  doc.setFont('helvetica', 'bold');
+  doc.text('◉ SELECTED ZONE', M, y);
+  y += 5;
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(7.5);
+  const colW = (W - M * 2) / 2;
+  const zoneRows = [
+    ['North', userZone.north.toFixed(6) + '°'],
+    ['South', userZone.south.toFixed(6) + '°'],
+    ['East', userZone.east.toFixed(6) + '°'],
+    ['West', userZone.west.toFixed(6) + '°'],
+    ['Area', calcArea(userZone).toFixed(2) + ' km²'],
+    ['Water Pixels', RESULTS.water_pixels.toLocaleString()]
+  ];
+  zoneRows.forEach((row, i) => {
+    const col = i % 2;
+    const rowY = y + Math.floor(i / 2) * 5;
+    const xOff = M + col * colW;
+    doc.setTextColor(...PC.muted);
+    doc.text(row[0] + ':', xOff, rowY);
+    doc.setTextColor(...PC.cyan);
+    doc.setFont('helvetica', 'bold');
+    doc.text(row[1], xOff + 26, rowY);
+    doc.setFont('helvetica', 'normal');
+  });
+  y += Math.ceil(zoneRows.length / 2) * 5 + 3;
+
+  doc.setDrawColor(...PC.line);
+  doc.line(M, y, W - M, y);
+  y += 6;
+  doc.setFontSize(7);
+  doc.setTextColor(...PC.cyan);
+  doc.setFont('helvetica', 'bold');
+  doc.text('◉ WATER HEALTH INDEX', M, y);
+  y += 4;
+  doc.setFillColor(...PC.inkSoft);
+  doc.roundedRect(M, y, W - M * 2, 22, 2, 2, 'F');
+  doc.setDrawColor(...PC.cyan);
+  doc.setLineWidth(0.3);
+  doc.roundedRect(M, y, W - M * 2, 22, 2, 2, 'S');
+  doc.setTextColor(...PC.cyan);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(24);
+  doc.text(RESULTS.whi.toFixed(1), M + 8, y + 14);
+  doc.setFontSize(7);
+  doc.setTextColor(...PC.muted);
+  doc.setFont('helvetica', 'normal');
+  doc.text('out of 100', M + 8, y + 18);
+  let status = '', sc = PC.green;
+  if (RESULTS.whi >= 80) { status = 'PRISTINE'; sc = PC.green; }
+  else if (RESULTS.whi >= 60) { status = 'GOOD'; sc = PC.cyan; }
+  else if (RESULTS.whi >= 40) { status = 'MODERATE'; sc = PC.yellow; }
+  else { status = 'CRITICAL'; sc = PC.red; }
+  doc.setFillColor(...sc);
+  doc.roundedRect(W - M - 40, y + 5, 36, 12, 1.5, 1.5, 'F');
+  doc.setTextColor(...PC.ink);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(10);
+  doc.text(status, W - M - 22, y + 13, { align: 'center' });
+  y += 27;
+
+  doc.setFontSize(7);
+  doc.setTextColor(...PC.cyan);
+  doc.setFont('helvetica', 'bold');
+  doc.text('◉ CLASSIFICATION BREAKDOWN', M, y);
+  y += 4;
+  const classes = [
+    { name: 'Clean Water', key: 'clean', color: [0, 212, 255] },
+    { name: 'Turbid Water', key: 'turbid', color: [255, 180, 68] },
+    { name: 'Organic Matter', key: 'organic', color: [0, 255, 136] },
+    { name: 'Industrial Effluent', key: 'industrial', color: [255, 60, 60] },
+    { name: 'Oil / Hydrocarbons', key: 'oil', color: [177, 78, 255] }
+  ];
+  classes.forEach((cls, i) => {
+    const pct = Number(RESULTS.classes[cls.key]) || 0;
+    const boxY = y + i * 9;
+    doc.setFillColor(10, 18, 24);
+    doc.rect(M, boxY, W - M * 2, 7.5, 'F');
+    doc.setFillColor(cls.color[0], cls.color[1], cls.color[2]);
+    doc.rect(M, boxY, 1.2, 7.5, 'F');
+    doc.setTextColor(224, 232, 240);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(7.5);
+    doc.text(cls.name, M + 4, boxY + 5);
+    const barX = M + 55;
+    const barY = boxY + 3;
+    const barW = 90;
+    doc.setFillColor(26, 42, 56);
+    doc.rect(barX, barY, barW, 1.5, 'F');
+    doc.setFillColor(cls.color[0], cls.color[1], cls.color[2]);
+    doc.rect(barX, barY, barW * Math.min(pct / 100, 1), 1.5, 'F');
+    doc.setTextColor(cls.color[0], cls.color[1], cls.color[2]);
+    doc.setFontSize(8.5);
+    doc.text(pct.toFixed(1) + '%', W - M - 2, boxY + 5.2, { align: 'right' });
+  });
+  y += classes.length * 9 + 4;
+
+  if (RESULTS.stats && y < H - 60) {
+    doc.setDrawColor(...PC.line);
+    doc.line(M, y, W - M, y);
+    y += 6;
+    doc.setFontSize(7);
+    doc.setTextColor(...PC.cyan);
+    doc.setFont('helvetica', 'bold');
+    doc.text('◉ SPECTRAL INDEX STATISTICS', M, y);
+    y += 5;
+    const statsRows = [
+      ['NDWI mean', RESULTS.stats.ndwi_mean.toFixed(3)],
+      ['Turbidity mean', RESULTS.stats.turbidity_mean.toFixed(3)],
+      ['NDCI mean', RESULTS.stats.ndci_mean.toFixed(3)],
+      ['MNDWI mean', RESULTS.stats.mndwi_mean.toFixed(3)],
+      ['SWIR1 mean', RESULTS.stats.swir1_mean.toFixed(4)],
+      ['SWIR2 mean', RESULTS.stats.swir2_mean.toFixed(4)]
+    ];
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7);
+    statsRows.forEach((row, i) => {
+      const col = i % 2;
+      const rowY = y + Math.floor(i / 2) * 4.5;
+      const xOff = M + col * colW;
+      doc.setTextColor(...PC.muted);
+      doc.text(row[0] + ':', xOff, rowY);
+      doc.setTextColor(...PC.cyan);
+      doc.setFont('helvetica', 'bold');
+      doc.text(String(row[1]), xOff + 30, rowY);
+      doc.setFont('helvetica', 'normal');
+    });
+  }
+
+  doc.addPage();
+  doc.setFillColor(...PC.ink);
+  doc.rect(0, 0, W, H, 'F');
+  doc.setFillColor(...PC.inkSoft);
+  doc.rect(0, 0, W, 12, 'F');
+  doc.setDrawColor(...PC.cyan);
+  doc.line(0, 12, W, 12);
+  doc.setFillColor(...PC.cyan);
+  doc.rect(M, 3.5, 4, 4, 'F');
+  doc.setTextColor(...PC.cyan);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(10);
+  doc.text('Aquature', M + 6, 7);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(6);
+  doc.setTextColor(...PC.muted);
+  doc.text('REFERENCES & METHODOLOGY', M + 6, 10);
+  y = 22;
+  doc.setFontSize(9);
+  doc.setTextColor(...PC.cyan);
+  doc.setFont('helvetica', 'bold');
+  doc.text('◉ SOURCES & REFERENCES', M, y);
+  y += 6;
+  doc.setFontSize(7);
+  doc.setTextColor(...PC.orange);
+  doc.setFont('helvetica', 'bold');
+  doc.text('METHODOLOGY', M, y);
+  y += 4;
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(6.5);
+  doc.setTextColor(...PC.muted);
+  [
+    'Water mask: (NDWI > 0.10) AND (MNDWI > 0.0) with adaptive fallback',
+    'Turbidity: (B04 - B03) / (B04 + B03) — visible sediment proxy',
+    'NDCI: (B05 - B04) / (B05 + B04) — chlorophyll-a index',
+    'MNDWI: (B03 - B11) / (B03 + B11) — water quality indicator',
+    'Oil: SWIR2 (B12) anomaly with SWIR1 (B11) + smooth surface'
+  ].forEach(line => { doc.text('• ' + line, M + 2, y); y += 3.2; });
+  y += 3;
+  doc.setTextColor(...PC.orange);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(7);
+  doc.text('DATA SOURCES', M, y);
+  y += 4;
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(6.5);
+  doc.setTextColor(...PC.muted);
+  [
+    'Sentinel-2 L2A — ESA Copernicus Programme — copernicus.eu',
+    'Microsoft Planetary Computer — planetarycomputer.microsoft.com',
+    'STAC Specification — stacspec.org'
+  ].forEach(s => { doc.text('• ' + s, M + 2, y); y += 3.2; });
+  y += 3;
+  doc.setTextColor(...PC.orange);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(7);
+  doc.text('SCIENTIFIC REFERENCES', M, y);
+  y += 4;
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(6.5);
+  doc.setTextColor(...PC.muted);
+  [
+    'McFeeters, S.K. (1996). The use of NDWI in the delineation of open water features.',
+    'Mishra, S. & Mishra, D.R. (2012). Normalized Difference Chlorophyll Index.',
+    'Xu, H. (2006). Modification of normalised difference water index (MNDWI).',
+    'Fingas, M. (2018). The challenges of remotely measuring oil slick thickness.',
+    'Drusch et al. (2012). Sentinel-2: ESA\'s Optical High-Resolution Mission.'
+  ].forEach(s => { doc.text('• ' + s, M + 2, y); y += 3.2; });
+  y += 3;
+  doc.setTextColor(...PC.orange);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(7);
+  doc.text('PROJECT CREDITS', M, y);
+  y += 4;
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(6.5);
+  doc.setTextColor(...PC.muted);
+  [
+    'Team: Nayadh Team',
+    'Contact: wasanalslhi@gmail.com',
+    'Event: Arab Youth Space Hackathon — 813 Challenge 2025',
+    'Platform: Python · Flask · Leaflet · jsPDF'
+  ].forEach(s => { doc.text('• ' + s, M + 2, y); y += 3.2; });
+
+  const totalPages = doc.internal.getNumberOfPages();
+  for (let p = 1; p <= totalPages; p++) {
+    doc.setPage(p);
+    const footY = H - 12;
+    doc.setFillColor(...PC.inkSoft);
+    doc.rect(0, footY - 3, W, 15, 'F');
+    doc.setDrawColor(...PC.cyan);
+    doc.line(0, footY - 3, W, footY - 3);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(6.5);
+    doc.setTextColor(...PC.cyan);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Aquature', M, footY + 2);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(...PC.muted);
+    doc.text('Water Intelligence Platform', M + 18, footY + 2);
+    doc.setTextColor(...PC.cyan);
+    doc.text('wasanalslhi@gmail.com', W - M, footY + 2, { align: 'right' });
+    doc.setTextColor(...PC.muted);
+    doc.setFontSize(5.5);
+    doc.text(`Page ${p} of ${totalPages}`, W / 2, footY + 6, { align: 'center' });
+  }
+
+  doc.save(`aquature-${Date.now()}.pdf`);
+  btn.textContent = originalText;
+  btn.disabled = false;
+});
+
+document.querySelectorAll('.rail-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.rail-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+  });
+});
+</script>
+</body>
+</html>
