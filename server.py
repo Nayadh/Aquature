@@ -28,9 +28,6 @@ _sas_lock = threading.Lock()
 SAS_TTL = 300
 
 
-# ============================================================
-# SIGN URL
-# ============================================================
 def get_sas_token(collection="sentinel-2-l2a"):
     with _sas_lock:
         now = time.time()
@@ -58,9 +55,6 @@ def sign_url(url, collection="sentinel-2-l2a"):
     return f"{url}{sep}{token}"
 
 
-# ============================================================
-# SEARCH
-# ============================================================
 def search_stac_all(bbox, days_back=120, max_items=10):
     end = datetime.now(timezone.utc)
     start = end - timedelta(days=days_back)
@@ -86,9 +80,6 @@ def search_stac_all(bbox, days_back=120, max_items=10):
     return features[:max_items]
 
 
-# ============================================================
-# LOAD BAND
-# ============================================================
 def load_band(url, bbox, size=512, max_retries=4):
     import rasterio
     from rasterio.windows import from_bounds
@@ -130,9 +121,6 @@ def load_band(url, bbox, size=512, max_retries=4):
     return None
 
 
-# ============================================================
-# OVERLAY
-# ============================================================
 def make_overlay(clean_m, turbid_m, organic_m, industrial_m, oil_m):
     h, w = clean_m.shape
     rgba = np.zeros((h, w, 4), dtype=np.uint8)
@@ -147,9 +135,6 @@ def make_overlay(clean_m, turbid_m, organic_m, industrial_m, oil_m):
     return f"data:image/png;base64,{base64.b64encode(buf.getvalue()).decode('ascii')}"
 
 
-# ============================================================
-# ADAPTIVE RESOLUTION
-# ============================================================
 def pick_resolution(size_w, size_h):
     m = max(size_w, size_h)
     if m <= 0.3:
@@ -168,9 +153,6 @@ def nd(a, b, eps=1e-6):
     return (a - b) / (a + b + eps)
 
 
-# ============================================================
-# QUICK WATER CHECK
-# ============================================================
 def check_scene_has_water(feature, bbox, resolution=128):
     """Quick check: does this scene have water in the bbox?"""
     assets = feature.get("assets", {})
@@ -196,9 +178,6 @@ def check_scene_has_water(feature, bbox, resolution=128):
         return False, 0
 
 
-# ============================================================
-# ANALYZE SINGLE FEATURE
-# ============================================================
 def analyze_with_feature(feature, bbox, resolution=512):
     """Run full analysis on a specific scene."""
     item_id = feature["id"]
@@ -249,9 +228,7 @@ def analyze_with_feature(feature, bbox, resolution=512):
     if green.max() < 0.01:
         return None, "Scene is empty (no data for this bbox)"
 
-    # ============================================================
     # INDICES
-    # ============================================================
     NDWI = nd(green, nir)
     Turbidity = nd(red, green)
     MNDWI = nd(green, swir1)
@@ -266,9 +243,7 @@ def analyze_with_feature(feature, bbox, resolution=512):
     NDSI = nd(red, swir1)
     NDMI = nd(nir, swir1)
 
-    # ============================================================
     # ADAPTIVE WATER MASK
-    # ============================================================
     array_pixels = green.size
 
     water = (NDWI > 0.20) & (MNDWI > 0.10) & (nir < 0.05)
@@ -294,9 +269,7 @@ def analyze_with_feature(feature, bbox, resolution=512):
     if water_count < 30:
         return None, f"Only {water_count} water pixels"
 
-    # ============================================================
     # STATISTICS
-    # ============================================================
     turb_w = Turbidity[water]
     ndci_w = NDCI[water]
     ndwi_w = NDWI[water]
@@ -338,10 +311,8 @@ def analyze_with_feature(feature, bbox, resolution=512):
     print(f"[stats] MNDWI mean={stats['mndwi_mean']:.3f} median={mndwi_med:.3f}")
     print(f"[stats] SWIR1 med={swir1_med:.4f}  SWIR2 med={swir2_med:.4f}")
 
-    # ============================================================
     # CLASSIFICATION
-    # ============================================================
-    # Oil — strict (real oil slicks only)
+    # Oil — strict
     oil_m = (
         water &
         (swir2 > swir2_med + 0.10) &
@@ -414,9 +385,6 @@ def analyze_with_feature(feature, bbox, resolution=512):
     return result, None
 
 
-# ============================================================
-# ANALYZE — MULTI-TILE SEARCH
-# ============================================================
 def analyze(bbox, resolution=512):
     """Try multiple scenes until one has water."""
     print(f"\n{'='*60}")
@@ -456,9 +424,7 @@ def analyze(bbox, resolution=512):
     }
 
 
-# ============================================================
 # ROUTES
-# ============================================================
 @app.route('/')
 def index():
     return send_from_directory('.', 'index.html')
